@@ -14,15 +14,16 @@ jobs:
 
       - name: Build zip
         run: |
-          zip -r alex_notify_build.zip . -x ".git/*" ".github/*" "__pycache__/*"
+          zip -r alex_notify_build.zip -x ".git/*" ".github/*" "__pycache__/*"
 
       - name: Upload ZIP to Release
         uses: softprops/action-gh-release@v2
         with:
           files: alex_notify_build.zip
+          tag_name: auto-zip-latest  # 👈 вот здесь ключ
 
       - name: Notify bot
         run: |
           curl -sS -X POST "${{ secrets.RAILWAY_URL }}/api/push?token=${{ secrets.SECRET_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d "{\"url\":\"https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/alex_notify_build.zip\"}"
+          -H "Content-Type: application/json" \
+          -d "{\"url\":\"https://github.com/${{ github.repository }}/releases/download/auto-zip-latest/alex_notify_build.zip\"}"

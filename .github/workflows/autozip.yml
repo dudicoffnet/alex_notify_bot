@@ -1,0 +1,32 @@
+name: Auto ZIP to Telegram
+
+on:
+  release:
+    types: [published]   # срабатывает при "Опубликовать релиз"
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Собираем архив проекта (исключаем служебные папки)
+      - name: Build zip
+        run: |
+          zip -r alex_notify_build.zip . -x ".git/*" ".github/*" "__pycache__/*"
+
+      # Кладём ZIP в опубликованный релиз
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: alex_notify_build.zip
+
+      # Сообщаем боту: забери ZIP и пришли в Telegram
+      - name: Call bot auto-push
+        run: |
+          curl -sS -X POST "${{ secrets.RAILWAY_URL }}/api/push?token=${{ secrets.SECRET_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"url\":\"https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/alex_notify_build.zip\",\"caption\":\"Новый релиз ${{ github.ref_name }}\"}"

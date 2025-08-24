@@ -1,9 +1,6 @@
-name: Auto ZIP to Telegram
-
 on:
-  release:
-    types: [published]   # срабатывает при "Опубликовать релиз"
-
+  workflow_dispatch:
+  name: Auto ZIP to Telegram
 jobs:
   build-and-push:
     runs-on: ubuntu-latest

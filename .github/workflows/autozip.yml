@@ -18,9 +18,9 @@ jobs:
 
       - name: Upload ZIP to Release
         uses: softprops/action-gh-release@v2
-        with:
-          files: alex_notify_build.zip
-          tag_name: auto-zip-latest  # 👈 вот здесь ключ
+       with:
+      files: alex_notify_build.zip
+      tag_name: v1.0.${{ github.run_number }}  # ✅ уникальный тег
 
       - name: Notify bot
         run: |

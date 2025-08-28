@@ -3,85 +3,86 @@ import asyncio
 import httpx
 import os
 from datetime import datetime
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-
 import zipfile
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("ADMIN_ID")
 
-# Подключение шрифта с поддержкой кириллицы
-pdfmetrics.registerFont(TTFont("DejaVuSans", "DejaVuSans.ttf"))
+REPORT_NAME = "report.txt"
 
-async def send_file(file_path, caption):
+def build_report(title="Отчёт"):
+    now = datetime.now().strftime("%d.%m.%Y %H:%M")
+    lines = [
+        f"{title} — {now}",
+        "",
+        "🏠 Снос дома (ул. Мирная, 32, Минск):",
+        "• Обновления: (пока нет данных — добавлю по мере поступления)",
+        "",
+        "✈️ Фукуок (перелёты, жильё, байк, еда, визы):",
+        "• Обновления: (пока нет данных — добавлю по мере поступления)",
+        "",
+        "💰 Возможные заработки и новые схемы:",
+        "• Обновления: (пока нет данных — добавлю по мере поступления)",
+        "",
+        "— Отчёт сгенерирован автоматически ботом-уведомителем."
+    ]
+    with open(REPORT_NAME, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+    return REPORT_NAME
+
+def make_backup():
+    name = "backup.zip"
+    with zipfile.ZipFile(name, "w") as z:
+        for fn in os.listdir("."):
+            if fn.endswith(".py") or fn.endswith(".txt"):
+                z.write(fn)
+    return name
+
+async def tg_send_file(path, caption):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendDocument"
-    with open(file_path, "rb") as f:
-        files = {"document": (file_path, f)}
+    with open(path, "rb") as f:
+        files = {"document": (path, f)}
         data = {"chat_id": CHAT_ID, "caption": caption}
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30) as client:
             await client.post(url, data=data, files=files)
 
-def generate_pdf(report_type="Утренний отчёт"):
-    path = "report.pdf"
-    c = canvas.Canvas(path, pagesize=A4)
-    width, height = A4
-    c.setFont("DejaVuSans", 16)
-    c.drawString(50, height - 50, f"{report_type} — {datetime.now().strftime('%d.%m.%Y %H:%M')}")
-    c.setFont("DejaVuSans", 12)
-
-    # Три основных блока
-    c.drawString(50, height - 100, "🏠 Снос дома (ул. Мирная, 32, Минск):")
-    c.drawString(70, height - 120, "• Данных пока нет / обновления подтянутся автоматически")
-
-    c.drawString(50, height - 160, "✈️ Фукуок (перелёты, жильё, байк, еда, визы):")
-    c.drawString(70, height - 180, "• Данных пока нет / обновления подтянутся автоматически")
-
-    c.drawString(50, height - 220, "💰 Возможные заработки и новые схемы:")
-    c.drawString(70, height - 240, "• Данных пока нет / обновления подтянутся автоматически")
-
-    c.drawString(50, 50, "🧠 Отчёт сгенерирован автоматически ботом-уведомителем")
-    c.save()
-    return path
-
 async def handle_force():
-    pdf = generate_pdf("Отчёт по запросу (/force)")
-    await send_file(pdf, "📄 Отчёт сгенерирован по команде")
+    txt = build_report("Отчёт по запросу (/force)")
+    await tg_send_file(txt, "📄 Отчёт по команде /force")
+    zip_path = make_backup()
+    await tg_send_file(zip_path, "📦 Целевой архив (force)")
 
-async def listen_for_force():
+async def listen_updates():
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
     offset = 0
     while True:
-        async with httpx.AsyncClient() as client:
-            r = await client.get(url, params={"offset": offset + 1})
-            updates = r.json().get("result", [])
-            for update in updates:
-                offset = update["update_id"]
-                if "message" in update:
-                    text = update["message"].get("text", "")
-                    chat = str(update["message"]["chat"]["id"])
-                    if text.strip() == "/force" and chat == CHAT_ID:
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                r = await client.get(url, params={"offset": offset + 1, "timeout": 25})
+                for u in r.json().get("result", []):
+                    offset = u["update_id"]
+                    msg = u.get("message") or {}
+                    text = (msg.get("text") or "").strip()
+                    chat_id = str((msg.get("chat") or {}).get("id", ""))
+                    if text == "/force" and chat_id == CHAT_ID:
                         await handle_force()
-        await asyncio.sleep(5)
+        except Exception:
+            pass
+        await asyncio.sleep(2)
 
 async def scheduler():
     while True:
         now = datetime.now().strftime("%H:%M")
         if now == "10:00":
-            pdf = generate_pdf("Утренний отчёт")
-            await send_file(pdf, "📄 Утренний отчёт")
+            txt = build_report("Утренний отчёт")
+            await tg_send_file(txt, "📄 Утренний отчёт (TXT)")
         elif now == "23:00":
-            pdf = generate_pdf("Вечерний отчёт")
-            await send_file(pdf, "📄 Вечерний отчёт")
+            txt = build_report("Вечерний отчёт")
+            await tg_send_file(txt, "📄 Вечерний отчёт (TXT)")
         await asyncio.sleep(60)
 
 async def main():
-    await asyncio.gather(
-        scheduler(),
-        listen_for_force()
-    )
+    await asyncio.gather(scheduler(), listen_updates())
 
 if __name__ == "__main__":
     asyncio.run(main())

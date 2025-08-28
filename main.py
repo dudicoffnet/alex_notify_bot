@@ -1,19 +1,22 @@
 
 import asyncio
+import httpx
+import os
 from datetime import datetime
-from aiogram import Bot, Dispatcher
-from aiogram.enums import ParseMode
-from aiogram.types import FSInputFile
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 import zipfile
-import os
 
-TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = int(os.getenv("ADMIN_ID"))
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("ADMIN_ID")
 
-bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
-dp = Dispatcher()
+async def send_file(file_path, caption):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendDocument"
+    with open(file_path, "rb") as f:
+        files = {"document": (file_path, f)}
+        data = {"chat_id": CHAT_ID, "caption": caption}
+        async with httpx.AsyncClient() as client:
+            await client.post(url, data=data, files=files)
 
 def generate_pdf():
     path = "report.pdf"
@@ -45,17 +48,12 @@ async def scheduler():
     while True:
         now = datetime.now().strftime("%H:%M")
         if now == "10:00":
-            pdf_path = generate_pdf()
-            await bot.send_document(CHAT_ID, FSInputFile(pdf_path), caption="📄 Утренний отчёт")
-        if now == "23:00":
+            pdf = generate_pdf()
+            await send_file(pdf, "📄 Утренний отчёт")
+        elif now == "23:00":
             zip_path = generate_zip()
-            await bot.send_document(CHAT_ID, FSInputFile(zip_path), caption="📦 Вечерний архив")
+            await send_file(zip_path, "📦 Вечерний архив")
         await asyncio.sleep(60)
 
-async def main():
-    asyncio.create_task(scheduler())
-    await dp.start_polling(bot)
-
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    asyncio.run(scheduler())

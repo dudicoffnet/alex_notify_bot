@@ -5,10 +5,16 @@ import os
 from datetime import datetime
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
 import zipfile
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("ADMIN_ID")
+
+# Подключение шрифта с поддержкой кириллицы
+pdfmetrics.registerFont(TTFont("DejaVuSans", "DejaVuSans.ttf"))
 
 async def send_file(file_path, caption):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendDocument"
@@ -18,37 +24,31 @@ async def send_file(file_path, caption):
         async with httpx.AsyncClient() as client:
             await client.post(url, data=data, files=files)
 
-def generate_pdf():
+def generate_pdf(report_type="Утренний отчёт"):
     path = "report.pdf"
     c = canvas.Canvas(path, pagesize=A4)
     width, height = A4
-    c.setFont("Helvetica-Bold", 18)
-    c.drawString(50, height - 50, "📄 УТРО. АВТООТЧЁТ ОТ АЛЕКСА")
-    now = datetime.now().strftime("%d.%m.%Y %H:%M")
-    c.setFont("Helvetica", 12)
-    c.drawString(50, height - 80, f"🕒 Время генерации: {now}")
-    c.setFont("Helvetica-Bold", 14)
-    c.drawString(50, height - 120, "🟢 Статус: Бот активен")
-    c.setFont("Helvetica", 12)
-    c.drawString(50, height - 150, "🔧 Все системы работают штатно")
-    c.drawString(50, height - 170, "📊 Будет сгенерирован ZIP-архив вечером")
-    c.drawString(50, 50, "🧠 Отчёт сгенерирован автоматически")
+    c.setFont("DejaVuSans", 16)
+    c.drawString(50, height - 50, f"{report_type} — {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+    c.setFont("DejaVuSans", 12)
+
+    # Три основных блока
+    c.drawString(50, height - 100, "🏠 Снос дома (ул. Мирная, 32, Минск):")
+    c.drawString(70, height - 120, "• Данных пока нет / обновления подтянутся автоматически")
+
+    c.drawString(50, height - 160, "✈️ Фукуок (перелёты, жильё, байк, еда, визы):")
+    c.drawString(70, height - 180, "• Данных пока нет / обновления подтянутся автоматически")
+
+    c.drawString(50, height - 220, "💰 Возможные заработки и новые схемы:")
+    c.drawString(70, height - 240, "• Данных пока нет / обновления подтянутся автоматически")
+
+    c.drawString(50, 50, "🧠 Отчёт сгенерирован автоматически ботом-уведомителем")
     c.save()
     return path
 
-def generate_zip():
-    zip_filename = "backup.zip"
-    with zipfile.ZipFile(zip_filename, 'w') as zipf:
-        for file in os.listdir():
-            if file.endswith(".py") or file.endswith(".txt"):
-                zipf.write(file)
-    return zip_filename
-
 async def handle_force():
-    pdf = generate_pdf()
-    await send_file(pdf, "📄 Утренний отчёт")
-    zip_path = generate_zip()
-    await send_file(zip_path, "📦 Вечерний архив")
+    pdf = generate_pdf("Отчёт по запросу (/force)")
+    await send_file(pdf, "📄 Отчёт сгенерирован по команде")
 
 async def listen_for_force():
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
@@ -70,11 +70,11 @@ async def scheduler():
     while True:
         now = datetime.now().strftime("%H:%M")
         if now == "10:00":
-            pdf = generate_pdf()
+            pdf = generate_pdf("Утренний отчёт")
             await send_file(pdf, "📄 Утренний отчёт")
         elif now == "23:00":
-            zip_path = generate_zip()
-            await send_file(zip_path, "📦 Вечерний архив")
+            pdf = generate_pdf("Вечерний отчёт")
+            await send_file(pdf, "📄 Вечерний отчёт")
         await asyncio.sleep(60)
 
 async def main():

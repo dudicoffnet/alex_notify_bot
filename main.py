@@ -44,6 +44,28 @@ def generate_zip():
                 zipf.write(file)
     return zip_filename
 
+async def handle_force():
+    pdf = generate_pdf()
+    await send_file(pdf, "📄 Утренний отчёт")
+    zip_path = generate_zip()
+    await send_file(zip_path, "📦 Вечерний архив")
+
+async def listen_for_force():
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
+    offset = 0
+    while True:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(url, params={"offset": offset + 1})
+            updates = r.json().get("result", [])
+            for update in updates:
+                offset = update["update_id"]
+                if "message" in update:
+                    text = update["message"].get("text", "")
+                    chat = str(update["message"]["chat"]["id"])
+                    if text.strip() == "/force" and chat == CHAT_ID:
+                        await handle_force()
+        await asyncio.sleep(5)
+
 async def scheduler():
     while True:
         now = datetime.now().strftime("%H:%M")
@@ -55,5 +77,11 @@ async def scheduler():
             await send_file(zip_path, "📦 Вечерний архив")
         await asyncio.sleep(60)
 
+async def main():
+    await asyncio.gather(
+        scheduler(),
+        listen_for_force()
+    )
+
 if __name__ == "__main__":
-    asyncio.run(scheduler())
+    asyncio.run(main())

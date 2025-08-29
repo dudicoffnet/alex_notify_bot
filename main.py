@@ -21,15 +21,15 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
 
-# Подключаем шрифт для кириллицы
-pdfmetrics.registerFont(TTFont("DejaVuSans", "DejaVuSans.ttf"))
+# Подключаем Arial.ttf для кириллицы
+pdfmetrics.registerFont(TTFont("Arial", "Arial.ttf"))
 
 def generate_pdf():
     filename = "report.pdf"
     c = canvas.Canvas(filename, pagesize=letter)
-    c.setFont("DejaVuSans", 14)
+    c.setFont("Arial", 14)
     c.drawString(100, 750, "Утренний отчёт")
-    c.setFont("DejaVuSans", 10)
+    c.setFont("Arial", 10)
     c.drawString(100, 730, f"Дата и время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     c.drawString(100, 710, "- Новости: проекты, обновления")
     c.drawString(100, 695, "- Напоминания: задачи, дедлайны")

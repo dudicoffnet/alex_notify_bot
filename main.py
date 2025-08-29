@@ -1,20 +1,23 @@
 import asyncio
+import logging
 import os
 from datetime import datetime
+
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import zipfile
-import httpx
+
+logging.basicConfig(level=logging.INFO)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "123456789"))
-TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
-async def send_file(file_path, caption):
-    url = f"{TELEGRAM_API}/sendDocument"
-    async with httpx.AsyncClient() as client:
-        with open(file_path, "rb") as f:
-            await client.post(url, data={"chat_id": ADMIN_ID, "caption": caption}, files={"document": f})
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
+scheduler = AsyncIOScheduler()
 
 def generate_pdf():
     filename = "report.pdf"
@@ -22,10 +25,10 @@ def generate_pdf():
     c.setFont("Helvetica", 14)
     c.drawString(100, 750, "Утренний отчёт")
     c.setFont("Helvetica", 10)
-    c.drawString(100, 730, f"Дата и время генерации: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    c.drawString(100, 710, "- Новости: здесь может быть сводка по проектам")
-    c.drawString(100, 695, "- Напоминания: задачи, дедлайны, события")
-    c.drawString(100, 680, "- Финансы: баланс, поступления, расходы")
+    c.drawString(100, 730, f"Дата и время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    c.drawString(100, 710, "- Новости: сводка проектов")
+    c.drawString(100, 695, "- Напоминания: задачи и дедлайны")
+    c.drawString(100, 680, "- Финансы: баланс и поступления")
     c.showPage()
     c.save()
     return filename
@@ -36,54 +39,34 @@ def generate_zip():
         zipf.writestr("readme.txt", f"Автоматический архив. Создан: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     return filename
 
-async def handle_force():
+async def send_pdf():
     pdf = generate_pdf()
-    await send_file(pdf, "PDF-отчёт по команде /force")
+    await bot.send_document(ADMIN_ID, types.FSInputFile(pdf), caption="Ежедневный PDF-отчёт")
+
+async def send_zip():
     zf = generate_zip()
-    await send_file(zf, "ZIP-архив по команде /force")
+    await bot.send_document(ADMIN_ID, types.FSInputFile(zf), caption="Ежедневный ZIP-архив")
 
-async def scheduler():
-    while True:
-        now = datetime.now().strftime("%H:%M")
-        if now == "10:00":
-            pdf = generate_pdf()
-            await send_file(pdf, "Ежедневный PDF-отчёт")
-        if now == "23:00":
-            zf = generate_zip()
-            await send_file(zf, "Ежедневный ZIP-архив")
-        # heartbeat каждые 5 минут
-        if datetime.now().minute % 5 == 0:
-            url = f"{TELEGRAM_API}/getMe"
-            try:
-                async with httpx.AsyncClient() as client:
-                    await client.get(url)
-            except Exception as e:
-                print("Ошибка heartbeat:", e)
-        await asyncio.sleep(60)
+@dp.message(Command("force"))
+async def cmd_force(message: types.Message):
+    pdf = generate_pdf()
+    await message.answer_document(types.FSInputFile(pdf), caption="PDF-отчёт по команде /force")
+    zf = generate_zip()
+    await message.answer_document(types.FSInputFile(zf), caption="ZIP-архив по команде /force")
 
-async def poll_updates():
-    offset = 0
-    while True:
-        url = f"{TELEGRAM_API}/getUpdates"
-        try:
-            async with httpx.AsyncClient() as client:
-                resp = await client.get(url, params={"offset": offset+1, "timeout":30})
-                data = resp.json()
-                for update in data.get("result", []):
-                    offset = update["update_id"]
-                    if "message" in update and "text" in update["message"]:
-                        text = update["message"]["text"].strip()
-                        print("Получено сообщение:", text)
-                        if text == "/force":
-                            await handle_force()
-        except Exception as e:
-            print("Ошибка poll_updates:", e)
+async def heartbeat():
+    try:
+        await bot.get_me()
+        logging.info("Heartbeat OK")
+    except Exception as e:
+        logging.error(f"Heartbeat error: {e}")
 
 async def main():
-    await asyncio.gather(
-        scheduler(),
-        poll_updates()
-    )
+    scheduler.add_job(send_pdf, "cron", hour=10, minute=0)
+    scheduler.add_job(send_zip, "cron", hour=23, minute=0)
+    scheduler.add_job(heartbeat, "interval", minutes=5)
+    scheduler.start()
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())

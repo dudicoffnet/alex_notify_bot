@@ -10,6 +10,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+import zipfile
 
 logging.basicConfig(level=logging.INFO)
 
@@ -38,22 +39,28 @@ def generate_pdf():
     c.save()
     return filename
 
+def generate_self_zip():
+    filename = "project_self.zip"
+    with zipfile.ZipFile(filename, "w") as zipf:
+        for f in ["main.py", "requirements.txt", "Procfile", "README.txt", ".env.example", "Arial.ttf"]:
+            if os.path.exists(f):
+                zipf.write(f)
+    return filename
+
 async def send_pdf():
     pdf = generate_pdf()
     await bot.send_document(ADMIN_ID, types.FSInputFile(pdf), caption="Ежедневный PDF-отчёт")
 
 async def send_zip():
-    filename = "alex_notify_bot_direct_zip.zip"
-    if os.path.exists(filename):
-        await bot.send_document(ADMIN_ID, types.FSInputFile(filename), caption="Архив проекта")
-    else:
-        await bot.send_message(ADMIN_ID, "Архив проекта не найден.")
+    zf = generate_self_zip()
+    await bot.send_document(ADMIN_ID, types.FSInputFile(zf), caption="Архив проекта (самосбор)")
 
 @dp.message(Command("force"))
 async def cmd_force(message: types.Message):
     pdf = generate_pdf()
     await message.answer_document(types.FSInputFile(pdf), caption="PDF-отчёт по команде /force")
-    await send_zip()
+    zf = generate_self_zip()
+    await message.answer_document(types.FSInputFile(zf), caption="ZIP-архив проекта по команде /force")
 
 async def heartbeat():
     try:

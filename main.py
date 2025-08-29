@@ -8,6 +8,8 @@ from aiogram.filters import Command
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 import zipfile
 
 logging.basicConfig(level=logging.INFO)
@@ -19,16 +21,19 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
 
+# Подключаем шрифт для кириллицы
+pdfmetrics.registerFont(TTFont("DejaVuSans", "DejaVuSans.ttf"))
+
 def generate_pdf():
     filename = "report.pdf"
     c = canvas.Canvas(filename, pagesize=letter)
-    c.setFont("Helvetica", 14)
+    c.setFont("DejaVuSans", 14)
     c.drawString(100, 750, "Утренний отчёт")
-    c.setFont("Helvetica", 10)
+    c.setFont("DejaVuSans", 10)
     c.drawString(100, 730, f"Дата и время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    c.drawString(100, 710, "- Новости: сводка проектов")
-    c.drawString(100, 695, "- Напоминания: задачи и дедлайны")
-    c.drawString(100, 680, "- Финансы: баланс и поступления")
+    c.drawString(100, 710, "- Новости: проекты, обновления")
+    c.drawString(100, 695, "- Напоминания: задачи, дедлайны")
+    c.drawString(100, 680, "- Финансы и крипто-обновления")
     c.showPage()
     c.save()
     return filename

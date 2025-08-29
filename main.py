@@ -5,7 +5,7 @@ from datetime import datetime
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from apscheduler.schedulers.asyncio import AsyncIOSScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics

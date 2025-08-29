@@ -10,7 +10,6 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-import zipfile
 
 logging.basicConfig(level=logging.INFO)
 
@@ -28,20 +27,15 @@ def generate_pdf():
     filename = "report.pdf"
     c = canvas.Canvas(filename, pagesize=letter)
     c.setFont("Arial", 14)
-    c.drawString(100, 750, "Утренний отчёт")
+    c.drawString(100, 750, "Полный отчёт")
     c.setFont("Arial", 10)
     c.drawString(100, 730, f"Дата и время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    c.drawString(100, 710, "- Новости: проекты, обновления")
-    c.drawString(100, 695, "- Напоминания: задачи, дедлайны")
-    c.drawString(100, 680, "- Финансы и крипто-обновления")
+    c.drawString(100, 710, "- Новости по проектам (боты, реклама, квартиры)")
+    c.drawString(100, 695, "- Напоминания и дедлайны")
+    c.drawString(100, 680, "- Финансы (BYN, USD, перелёты, траты)")
+    c.drawString(100, 665, "- Крипто-обновления и airdrops")
     c.showPage()
     c.save()
-    return filename
-
-def generate_zip():
-    filename = "backup.zip"
-    with zipfile.ZipFile(filename, "w") as zipf:
-        zipf.writestr("readme.txt", f"Автоматический архив. Создан: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     return filename
 
 async def send_pdf():
@@ -49,28 +43,17 @@ async def send_pdf():
     await bot.send_document(ADMIN_ID, types.FSInputFile(pdf), caption="Ежедневный PDF-отчёт")
 
 async def send_zip():
-    zf = generate_zip()
-    await bot.send_document(ADMIN_ID, types.FSInputFile(zf), caption="Ежедневный ZIP-архив")
+    filename = "alex_notify_bot_direct_zip.zip"
+    if os.path.exists(filename):
+        await bot.send_document(ADMIN_ID, types.FSInputFile(filename), caption="Архив проекта")
+    else:
+        await bot.send_message(ADMIN_ID, "Архив проекта не найден.")
 
 @dp.message(Command("force"))
 async def cmd_force(message: types.Message):
     pdf = generate_pdf()
     await message.answer_document(types.FSInputFile(pdf), caption="PDF-отчёт по команде /force")
-    zf = generate_zip()
-    await message.answer_document(types.FSInputFile(zf), caption="ZIP-архив по команде /force")
-
-@dp.message(Command("archives"))
-async def cmd_archives(message: types.Message):
-    archives_dir = "archives"
-    if not os.path.exists(archives_dir):
-        await message.answer("Папка 'archives' пуста или не создана.")
-        return
-    files = [f for f in os.listdir(archives_dir) if f.endswith(".zip")]
-    if not files:
-        await message.answer("Нет доступных архивов в папке 'archives'.")
-        return
-    for f in files:
-        await message.answer_document(types.FSInputFile(os.path.join(archives_dir, f)), caption=f"Архив проекта: {f}")
+    await send_zip()
 
 async def heartbeat():
     try:

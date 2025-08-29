@@ -8,7 +8,6 @@ import httpx
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "123456789"))
-
 TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 async def send_file(file_path, caption):
@@ -20,15 +19,21 @@ async def send_file(file_path, caption):
 def generate_pdf():
     filename = "report.pdf"
     c = canvas.Canvas(filename, pagesize=letter)
-    c.drawString(100, 750, "Автоотчёт от Алекса")
-    c.drawString(100, 730, f"Дата и время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    c.setFont("Helvetica", 14)
+    c.drawString(100, 750, "Утренний отчёт")
+    c.setFont("Helvetica", 10)
+    c.drawString(100, 730, f"Дата и время генерации: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    c.drawString(100, 710, "- Новости: здесь может быть сводка по проектам")
+    c.drawString(100, 695, "- Напоминания: задачи, дедлайны, события")
+    c.drawString(100, 680, "- Финансы: баланс, поступления, расходы")
+    c.showPage()
     c.save()
     return filename
 
 def generate_zip():
     filename = "backup.zip"
     with zipfile.ZipFile(filename, "w") as zipf:
-        zipf.writestr("readme.txt", f"Автоархив от {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        zipf.writestr("readme.txt", f"Автоматический архив. Создан: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     return filename
 
 async def handle_force():
@@ -52,8 +57,8 @@ async def scheduler():
             try:
                 async with httpx.AsyncClient() as client:
                     await client.get(url)
-            except Exception:
-                pass
+            except Exception as e:
+                print("Ошибка heartbeat:", e)
         await asyncio.sleep(60)
 
 async def poll_updates():
@@ -67,10 +72,12 @@ async def poll_updates():
                 for update in data.get("result", []):
                     offset = update["update_id"]
                     if "message" in update and "text" in update["message"]:
-                        if update["message"]["text"].strip() == "/force":
+                        text = update["message"]["text"].strip()
+                        print("Получено сообщение:", text)
+                        if text == "/force":
                             await handle_force()
-        except Exception:
-            pass
+        except Exception as e:
+            print("Ошибка poll_updates:", e)
 
 async def main():
     await asyncio.gather(

@@ -5,7 +5,7 @@ from datetime import datetime
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.asyncio import AsyncIOSScheduler
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
@@ -58,6 +58,19 @@ async def cmd_force(message: types.Message):
     await message.answer_document(types.FSInputFile(pdf), caption="PDF-отчёт по команде /force")
     zf = generate_zip()
     await message.answer_document(types.FSInputFile(zf), caption="ZIP-архив по команде /force")
+
+@dp.message(Command("archives"))
+async def cmd_archives(message: types.Message):
+    archives_dir = "archives"
+    if not os.path.exists(archives_dir):
+        await message.answer("Папка 'archives' пуста или не создана.")
+        return
+    files = [f for f in os.listdir(archives_dir) if f.endswith(".zip")]
+    if not files:
+        await message.answer("Нет доступных архивов в папке 'archives'.")
+        return
+    for f in files:
+        await message.answer_document(types.FSInputFile(os.path.join(archives_dir, f)), caption=f"Архив проекта: {f}")
 
 async def heartbeat():
     try:

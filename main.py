@@ -2,7 +2,6 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
 from aiogram.types import Message
 from aiogram.filters import CommandStart, Command
-from aiogram.utils.markdown import hbold
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import asyncio
 import logging
@@ -20,18 +19,18 @@ bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
 
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
-    await message.answer(f"Бот-уведомитель запущен. Используй /report для отчёта.")
+    await message.answer("🤖 Бот уведомлений запущен. Используй /report или /ping.")
 
 @dp.message(Command("report"))
 async def cmd_report(message: Message):
-    await message.answer("📝 Здесь будет PDF-отчёт (имитация).")
+    await message.answer("📄 Здесь будет PDF-отчёт (эмуляция).")
 
 @dp.message(Command("ping"))
 async def cmd_ping(message: Message):
-    await message.answer("🏓 Бот работает.")
+    await message.answer("🏓 Pong")
 
 async def scheduler_task():
-    await bot.send_message(USER_ID, "⏰ Это сообщение отправлено по расписанию.")
+    await bot.send_message(USER_ID, "⏰ Это автоуведомление по расписанию (10:00 / 23:00).")
 
 async def main():
     scheduler = AsyncIOScheduler(timezone=TIMEZONE)
@@ -40,6 +39,7 @@ async def main():
     scheduler.start()
 
     logging.basicConfig(level=logging.INFO)
+    print("✅ Бот запущен и готов к работе")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":

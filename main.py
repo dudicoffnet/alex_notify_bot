@@ -28,13 +28,15 @@ def generate_pdf():
     filename = "report.pdf"
     c = canvas.Canvas(filename, pagesize=letter)
     c.setFont("Arial", 14)
-    c.drawString(100, 750, "Полный отчёт")
+    c.drawString(100, 750, "Ежедневный отчёт")
     c.setFont("Arial", 10)
     c.drawString(100, 730, f"Дата и время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    c.drawString(100, 710, "- Новости по проектам (боты, реклама, квартиры)")
-    c.drawString(100, 695, "- Напоминания и дедлайны")
-    c.drawString(100, 680, "- Финансы (BYN, USD, перелёты, траты)")
-    c.drawString(100, 665, "- Крипто-обновления и airdrops")
+    # Реальные блоки
+    c.drawString(100, 710, "Проекты: MercedesScanBot, Сейчас, квартиры, реклама")
+    c.drawString(100, 695, "Дедлайны: Railway деплой, GitHub коммиты, отчёты в 23:00")
+    c.drawString(100, 680, "Финансы: BYN/USD курсы, траты, билеты Минск–Фукуок")
+    c.drawString(100, 665, "Крипто: airdrops, тестнеты, LayerZero, zkSync, StarkNet")
+    c.drawString(100, 650, "Дом: отслеживание новостей о сносе по ул. Мирная, 32")
     c.showPage()
     c.save()
     return filename
@@ -53,7 +55,7 @@ async def send_pdf():
 
 async def send_zip():
     zf = generate_self_zip()
-    await bot.send_document(ADMIN_ID, types.FSInputFile(zf), caption="Архив проекта (самосбор)")
+    await bot.send_document(ADMIN_ID, types.FSInputFile(zf), caption="Архив проекта")
 
 @dp.message(Command("force"))
 async def cmd_force(message: types.Message):

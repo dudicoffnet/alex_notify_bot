@@ -1,45 +1,21 @@
-from aiogram import Bot, Dispatcher, types
-from aiogram.enums import ParseMode
-from aiogram.types import Message
-from aiogram.filters import CommandStart, Command
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import asyncio
-import logging
+from aiogram import Bot, Dispatcher
+from aiogram.types import Message
+from aiogram.enums import ParseMode
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import FSInputFile
+from aiogram import Router
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
+from handlers import report, zip_handler
 
-TOKEN = os.getenv("BOT_TOKEN")
-USER_ID = int(os.getenv("USER_ID", "0"))
-TIMEZONE = os.getenv("TIMEZONE", "Europe/Minsk")
+bot = Bot(token=os.getenv("BOT_TOKEN"), parse_mode=ParseMode.HTML)
+dp = Dispatcher(storage=MemoryStorage())
 
-dp = Dispatcher()
-bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
-
-@dp.message(CommandStart())
-async def cmd_start(message: Message):
-    await message.answer("🤖 Бот уведомлений запущен. Используй /report или /ping.")
-
-@dp.message(Command("report"))
-async def cmd_report(message: Message):
-    await message.answer("📄 Здесь будет PDF-отчёт (эмуляция).")
-
-@dp.message(Command("ping"))
-async def cmd_ping(message: Message):
-    await message.answer("🏓 Pong")
-
-async def scheduler_task():
-    await bot.send_message(USER_ID, "⏰ Это автоуведомление по расписанию (10:00 / 23:00).")
+dp.include_router(report.router)
+dp.include_router(zip_handler.router)
 
 async def main():
-    scheduler = AsyncIOScheduler(timezone=TIMEZONE)
-    scheduler.add_job(scheduler_task, "cron", hour=10, minute=0)
-    scheduler.add_job(scheduler_task, "cron", hour=23, minute=0)
-    scheduler.start()
-
-    logging.basicConfig(level=logging.INFO)
-    print("✅ Бот запущен и готов к работе")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":

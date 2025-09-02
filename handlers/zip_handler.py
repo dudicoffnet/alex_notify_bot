@@ -4,7 +4,7 @@ import os
 
 router = Router()
 
-@router.message(commands=["zip"])
+@router.message(Text(equals="/zip"))
 async def cmd_zip(message: Message):
     zip_path = "storage/exports/sample.zip"
     if os.path.exists(zip_path):

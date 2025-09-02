@@ -1,21 +1,21 @@
+
 import asyncio
 from aiogram import Bot, Dispatcher
-from aiogram.types import Message
-from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import FSInputFile
-from aiogram import Router
+from scheduler.scheduler import setup_scheduler
+from handlers.base import router
+
 import os
+from dotenv import load_dotenv
 
-from handlers import report, zip_handler
-
-bot = Bot(token=os.getenv("BOT_TOKEN"), parse_mode=ParseMode.HTML)
+load_dotenv()
+TOKEN = os.getenv("BOT_TOKEN")
+bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
-
-dp.include_router(report.router)
-dp.include_router(zip_handler.router)
+dp.include_router(router)
 
 async def main():
+    setup_scheduler(bot)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":

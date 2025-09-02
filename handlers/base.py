@@ -1,13 +1,1 @@
-
-from aiogram import Router, types
-from aiogram.filters import Command
-
-router = Router()
-
-@router.message(Command("start"))
-async def start_cmd(message: types.Message):
-    await message.answer("Привет! Я бот-уведомитель. Жди PDF утром и вечером.")
-
-@router.message(Command("ping"))
-async def ping_cmd(message: types.Message):
-    await message.answer("pong")
+# base.py: эндпоинты uploadzip, ping, health

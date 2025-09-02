@@ -1,6 +1,3 @@
-aiogram==3.4.1
-python-dotenv
-APScheduler
-reportlab
 aiohttp
-tzdata
+python-telegram-bot
+apscheduler

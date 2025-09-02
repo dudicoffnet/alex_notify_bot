@@ -1,3 +1,4 @@
+from aiogram.filters import Text
 from aiogram import Router
 from aiogram.types import Message, FSInputFile
 import os

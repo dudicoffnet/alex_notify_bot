@@ -1,8 +1,6 @@
 
-import os
-from aiogram import types
+from aiogram.types import FSInputFile
 
-async def send_zip(message: types.Message):
-    zip_path = "alex_notify.zip"
-    with open(zip_path, "rb") as f:
-        await message.answer_document(document=f, caption="📦 Лови архив")
+async def send_zip(message):
+    zip_file = FSInputFile("alex_notify.zip")
+    await message.answer_document(document=zip_file, caption="📦 Лови архив")

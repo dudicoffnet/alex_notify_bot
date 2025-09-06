@@ -56,3 +56,7 @@ async def send_zip_file(message: Message):
         await message.answer("ZIP-файл не найден.")
 
 router.message.middleware(router_sendzip.message.middleware)  # на всякий случай
+
+
+from main import router_sendzip
+dp.include_router(router_sendzip)

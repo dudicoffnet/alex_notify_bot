@@ -1,5 +1,6 @@
 import asyncio
-from aiogram import Bot, Dispatcher, Router, F
+from aiogram import Bot, Dispatcher
+from handlers.router_sendzip import router_sendzip, Router, F
 from aiogram.types import Message
 from aiogram.enums.parse_mode import ParseMode
 from aiogram.fsm.strategy import FSMStrategy
@@ -33,6 +34,7 @@ async def main():
     bot = Bot(token=os.getenv("BOT_TOKEN"), parse_mode=ParseMode.HTML)
     dp = Dispatcher(bot=bot, fsm_strategy=FSMStrategy.CHAT)
     dp.include_router(router)
+dp.include_router(router_sendzip)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":

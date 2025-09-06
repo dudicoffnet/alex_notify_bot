@@ -1,45 +1,42 @@
-
-from aiogram import Bot, Dispatcher, Router, types
-from aiogram.types import FSInputFile
-from aiogram.enums import ParseMode
-from aiogram.filters import CommandStart, Command
-from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram import F
 import asyncio
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import FSInputFile
+from aiogram import F
+from aiogram.router import Router
+from aiogram.filters import Command
 import os
 
-bot = Bot(token=os.getenv("BOT_TOKEN"), parse_mode=ParseMode.HTML)
-dp = Dispatcher(storage=MemoryStorage())
+bot = Bot(token=os.getenv("BOT_TOKEN"))
+dp = Dispatcher()
 router = Router()
 
-@router.message(CommandStart())
+@router.message(Command("start"))
 async def start_handler(message: types.Message):
-    await message.answer("✅ Бот запущен и готов к работе.")
+    await message.answer("Бот запущен и готов к работе.")
 
 @router.message(Command("ping"))
 async def ping_handler(message: types.Message):
-    await message.answer("🏓 Pong!")
+    await message.answer("Я на связи.")
 
 @router.message(Command("reportpdf"))
-async def report_pdf(message: types.Message):
-    file_path = "storage/daily_report.pdf"
-    if os.path.exists(file_path):
-        await message.answer_document(FSInputFile(file_path))
+async def report_handler(message: types.Message):
+    pdf_path = "storage/daily_report.pdf"
+    if os.path.exists(pdf_path):
+        await message.answer_document(FSInputFile(pdf_path))
     else:
-        await message.answer("❌ Отчёт не найден.")
+        await message.answer("Файл отчёта не найден.")
 
 @router.message(Command("sendzip"))
-async def send_zip(message: types.Message):
-    file_path = "storage/alex_notify_bot_v15_payload.zip"
-    if os.path.exists(file_path):
-        await message.answer_document(FSInputFile(file_path))
+async def sendzip_handler(message: types.Message):
+    zip_path = "storage/alex_notify_bot_v15_payload.zip"
+    if os.path.exists(zip_path):
+        await message.answer_document(FSInputFile(zip_path))
     else:
-        await message.answer("❌ ZIP не найден.")
+        await message.answer("ZIP-файл не найден.")
 
 dp.include_router(router)
 
 async def main():
-    await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":

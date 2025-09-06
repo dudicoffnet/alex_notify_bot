@@ -1,47 +1,45 @@
+
+from aiogram import Bot, Dispatcher, Router, types
+from aiogram.types import FSInputFile
+from aiogram.enums import ParseMode
+from aiogram.filters import CommandStart, Command
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram import F
 import asyncio
-import logging
 import os
 
-from aiogram import Bot, Dispatcher, Router, F
-from aiogram.enums import ParseMode
-from aiogram.fsm.strategy import FSMStrategy
-from aiogram.types import Message, FSInputFile
-from aiogram.filters import Command
-
+bot = Bot(token=os.getenv("BOT_TOKEN"), parse_mode=ParseMode.HTML)
+dp = Dispatcher(storage=MemoryStorage())
 router = Router()
-router_sendzip = Router()
 
-@router.message(F.text == "/start")
-async def start_handler(message: Message):
-    await message.answer("🤖 Бот запущен. Я готов присылать ZIP и PDF по твоей команде.")
+@router.message(CommandStart())
+async def start_handler(message: types.Message):
+    await message.answer("✅ Бот запущен и готов к работе.")
 
-@router.message(F.text == "/ping")
-async def ping_handler(message: Message):
-    await message.answer("🔴 Я на связи.")
+@router.message(Command("ping"))
+async def ping_handler(message: types.Message):
+    await message.answer("🏓 Pong!")
 
-@router.message(F.text == "/reportpdf")
-async def report_handler(message: Message):
-    try:
-        file = FSInputFile("storage/daily_report.pdf")
-        await message.answer_document(file, caption="🗂 Твой свежий отчёт")
-    except Exception as e:
-        await message.answer(f"Не удалось отправить PDF: {e}")
+@router.message(Command("reportpdf"))
+async def report_pdf(message: types.Message):
+    file_path = "storage/daily_report.pdf"
+    if os.path.exists(file_path):
+        await message.answer_document(FSInputFile(file_path))
+    else:
+        await message.answer("❌ Отчёт не найден.")
 
-@router_sendzip.message(Command("sendzip"))
-async def sendzip_handler(message: Message):
-    path = "storage/alex_notify_bot_v12_payload.zip"
-    try:
-        file = FSInputFile(path)
-        await message.answer_document(file, caption="📦 Лови ZIP")
-    except Exception as e:
-        await message.answer(f"ZIP не отправлен: {e}")
+@router.message(Command("sendzip"))
+async def send_zip(message: types.Message):
+    file_path = "storage/alex_notify_bot_v15_payload.zip"
+    if os.path.exists(file_path):
+        await message.answer_document(FSInputFile(file_path))
+    else:
+        await message.answer("❌ ZIP не найден.")
+
+dp.include_router(router)
 
 async def main():
-    logging.basicConfig(level=logging.INFO)
-    bot = Bot(token=os.getenv("BOT_TOKEN"), parse_mode=ParseMode.HTML)
-    dp = Dispatcher(fsm_strategy=FSMStrategy.CHAT)
-    dp.include_router(router)
-    dp.include_router(router_sendzip)
+    await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":

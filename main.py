@@ -1,34 +1,40 @@
-from aiogram import Bot, Dispatcher, F, Router
-from aiogram.types import Message
-from aiogram.enums import ParseMode
-from aiogram.fsm.context import FSMContext
-from aiogram import types
-from utils.send_zip import send_zip_file
-from utils.send_pdf import send_pdf_file
 import asyncio
+from aiogram import Bot, Dispatcher
+from aiogram.enums import ParseMode
+from aiogram.types import Message
+from aiogram.fsm.strategy import FSMStrategy
+
+from handlers.commands import register_commands
+from utils.send_zip import send_zip_file
+
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
-
-bot = Bot(token=os.getenv('BOT_TOKEN'))
+TOKEN = os.getenv("BOT_TOKEN")
+bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
 dp = Dispatcher()
-router = Router()
 
-@router.message(F.text == '/ping')
+@dp.message(lambda msg: msg.text == "/start")
+async def start_handler(message: Message):
+    await message.answer("Я на СВЯЗИ")
+
+@dp.message(lambda msg: msg.text == "/ping")
 async def ping_handler(message: Message):
-    await message.answer("Я на связи")
+    await message.answer("pong")
 
-@router.message(F.text == '/sendzip')
+@dp.message(lambda msg: msg.text == "/reportpdf")
+async def report_pdf_handler(message: Message):
+    await message.answer("PDF отчёты по команде пока не активированы.")
+
+@dp.message(lambda msg: msg.text == "/sendzip")
 async def zip_handler(message: Message):
     await send_zip_file(message)
 
-@router.message(F.text == '/report')
-async def pdf_handler(message: Message):
-    await send_pdf_file(message)
-
-dp.include_router(router)
+register_commands(dp)
 
 async def main():
     await dp.start_polling(bot)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

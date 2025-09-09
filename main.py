@@ -1,25 +1,33 @@
+import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram.types import Message
 from aiogram.enums import ParseMode
-from aiogram.filters import Command
-from aiogram import F
-import asyncio
-import logging
-import os
-from handlers.zip_handler import router as zip_router
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram import Router
+from aiogram.types import FSInputFile
+from io import BytesIO
+import zipfile
 
-TOKEN = os.getenv("BOT_TOKEN")
-
+TOKEN = "your_token_here"
 bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
-dp = Dispatcher()
-dp.include_router(zip_router)
+dp = Dispatcher(storage=MemoryStorage())
+router = Router()
+dp.include_router(router)
 
-@dp.message(Command("start"))
+@router.message(lambda m: m.text == "/start")
 async def start_handler(message: Message):
     await message.answer("✅ Бот работает. Жду команду /sendzip")
 
+@router.message(lambda m: m.text == "/sendzip")
+async def send_zip_handler(message: Message):
+    await message.answer("📦 ZIP отправляется... (если не пришёл — Алекс разбирается)")
+    mem_zip = BytesIO()
+    with zipfile.ZipFile(mem_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("info.txt", "Этот ZIP создан в памяти и отправлен ботом.")
+    mem_zip.seek(0)
+    await bot.send_document(message.chat.id, document=mem_zip, filename="alex_notify_bot_payload.zip")
+
 async def main():
-    logging.basicConfig(level=logging.INFO)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":

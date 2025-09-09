@@ -1,38 +1,23 @@
+from aiogram import Bot, Dispatcher
+from aiogram.enums import ParseMode
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import Message
+from aiogram import Router
 import asyncio
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import FSInputFile
-from aiogram import F
-from aiogram.router import Router
-from aiogram.filters import Command
 import os
 
-bot = Bot(token=os.getenv("BOT_TOKEN"))
-dp = Dispatcher()
+from handlers import cmd_ping, cmd_report, cmd_sendzip
+
+TOKEN = os.getenv("BOT_TOKEN")
+bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
+dp = Dispatcher(storage=MemoryStorage())
 router = Router()
 
-@router.message(Command("start"))
-async def start_handler(message: types.Message):
-    await message.answer("Бот запущен и готов к работе.")
-
-@router.message(Command("ping"))
-async def ping_handler(message: types.Message):
-    await message.answer("Я на связи.")
-
-@router.message(Command("reportpdf"))
-async def report_handler(message: types.Message):
-    pdf_path = "storage/daily_report.pdf"
-    if os.path.exists(pdf_path):
-        await message.answer_document(FSInputFile(pdf_path))
-    else:
-        await message.answer("Файл отчёта не найден.")
-
-@router.message(Command("sendzip"))
-async def sendzip_handler(message: types.Message):
-    zip_path = "storage/alex_notify_bot_v15_payload.zip"
-    if os.path.exists(zip_path):
-        await message.answer_document(FSInputFile(zip_path))
-    else:
-        await message.answer("ZIP-файл не найден.")
+router.include_routers(
+    cmd_ping.router,
+    cmd_report.router,
+    cmd_sendzip.router
+)
 
 dp.include_router(router)
 
